@@ -165,6 +165,13 @@ function ease(t) {
   return t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2;
 }
 
+function getBallWorldPosition(position) {
+  return position.clone()
+    .multiplyScalar(ballGroup.scale.x)
+    .applyQuaternion(ballGroup.quaternion)
+    .add(ballGroup.position);
+}
+
 function fibonacciSphere(i, n, radius = 1.67) {
   const golden = Math.PI * (3 - Math.sqrt(5));
   const y = 1 - (i / Math.max(1, n - 1)) * 2;
@@ -275,19 +282,17 @@ function startMorph(toQR) {
 
   particles.forEach(p => {
     p.mesh.visible = true;
-    p.startPos.copy(p.mesh.position);
-    p.endPos.copy(toQR ? p.qrPos : p.ballPos);
-    p.startOpacity = p.mesh.material.opacity;
-    p.endOpacity = toQR ? 1 : 0;
-    p.mesh.material.opacity = p.startOpacity;
+    p.startPos.copy(toQR ? getBallWorldPosition(p.ballPos) : p.qrPos);
+    p.endPos.copy(toQR ? p.qrPos : getBallWorldPosition(p.ballPos));
+    p.startOpacity = 1;
+    p.endOpacity = 1;
+    p.mesh.material.opacity = 1;
   });
 
-  if (toQR) {
-    ball.visible = false;
-    seam.visible = false;
-    patches.forEach(p => p.visible = false);
-    patchOutlines.forEach(outline => outline.visible = false);
-  }
+  ball.visible = true;
+  seam.visible = true;
+  patches.forEach(p => p.visible = true);
+  patchOutlines.forEach(outline => outline.visible = true);
 
   startMorph.toQR = toQR;
 }
@@ -311,7 +316,7 @@ function render(time) {
     const t = ease(raw);
     const toQR = startMorph.toQR;
 
-    const ballOpacity = toQR ? 1 - Math.min(t / 0.32, 1) : t;
+    const ballOpacity = toQR ? 1 - t : t;
     ball.material.opacity = ballOpacity;
     patchMat.opacity = ballOpacity;
     patches.forEach(p => p.material.opacity = ballOpacity);
@@ -321,19 +326,15 @@ function render(time) {
     ballGroup.scale.setScalar(1 - (toQR ? t : 1-t) * 0.13);
     ballGroup.rotation.y += 0.007 * (1 - t);
 
-    particles.forEach((p, i) => {
-      const progress = particles.length > 1 ? i / (particles.length - 1) : 0;
-      const delay = progress * 0.12;
-      const local = Math.max(0, Math.min(1, (t - delay) / (1 - delay)));
+    particles.forEach(p => {
+      const local = t;
       p.mesh.position.lerpVectors(p.startPos, p.endPos, local);
-
-      p.mesh.position.z += Math.sin(local * Math.PI) * (toQR ? 1 : -1) * (0.48 + (i % 11) * 0.018);
 
       p.mesh.material.opacity =
         p.startOpacity + (p.endOpacity - p.startOpacity) * local;
 
-      const spin = Math.sin(local * Math.PI) * 0.72;
-      const alignment = toQR ? 1 - Math.min(local * 1.35, 1) : 0;
+      const spin = Math.sin(local * Math.PI) * 0.18;
+      const alignment = toQR ? 1 - local : local;
       p.mesh.rotation.set(
         p.baseRotation.x * alignment + spin * 0.22,
         p.baseRotation.y * alignment + spin * 0.16,
