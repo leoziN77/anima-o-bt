@@ -3,7 +3,7 @@ import * as THREE from "three";
 import QRCode from "qrcode";
 import "./style.css";
 
-const DEFAULT_URL = "https://bolaodatropa.com.br/";
+const DEFAULT_URL = "https://www.instagram.com/bolaodatropa/";
 const app = document.querySelector("#app");
 
 app.innerHTML = `
